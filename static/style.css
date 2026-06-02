@@ -1786,7 +1786,7 @@ body.bg-pattern-sparkles {
     @media (max-height: 380px) {
       #welcome-screen { opacity: 0; pointer-events: none; }
     }
-    #welcome-screen.hidden { display:none; }
+    #welcome-screen.hidden { display: none !important; }
     #welcome-screen.kb-hidden {
       opacity: 0;
       pointer-events: none;
@@ -3029,7 +3029,7 @@ body.bg-pattern-sparkles {
       background: color-mix(in srgb, var(--fg) 6%, transparent);
     }
     .attach-btn { width:32px; display:grid; place-items:center; }
-    .hidden { display:none; }
+    .hidden { display: none !important; }
     .toggle { position:relative; display:inline-block; width:30px; height:16px; vertical-align:middle; }
     .toggle input { opacity:0; width:0; height:0; }
     .toggle .slider {
@@ -4713,7 +4713,7 @@ body.bg-pattern-sparkles {
        Cookbook…" flow (and any other "open Cookbook from inside another
        modal") is visible no matter which modal was opened first. */
     #cookbook-modal { z-index: 260; }
-    .modal.hidden { display:none; }
+    .modal.hidden { display: none !important; }
 
     /* Tool windows open centered in the CHAT AREA (the space right of the
        sidebar + icon rail), rather than the full viewport.
@@ -12881,7 +12881,7 @@ body:has(.compare-active) .hamburger-btn { display: none !important; }
    hamburger sticking out over them is just clutter / mis-tap bait. */
 @media (max-width: 768px) {
   body.doc-view .hamburger-btn,
-  body:has(#notes-pane) .hamburger-btn { display: none !important; }
+  body:has(#notes-panel) .hamburger-btn { display: none !important; }
 }
   /* Make room for hamburger button alongside the tab/header bars (fallback if shown) */
   body.doc-view.sidebar-collapsed.hamburger-left .doc-tab-bar,

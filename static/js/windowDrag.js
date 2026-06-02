@@ -92,11 +92,9 @@ export function makeWindowDraggable(modal, options = {}) {
   }
 
   const rightDock = enableDock ? makeEdgeDockController(modal, 'right') : null;
-  // Left dock is opt-in (enableLeftDock). For most windows it's off — the
-  // sidebar lives on the left, so a left dock collides with it. The email
-  // window enables it so you can park the message on the left and read it
-  // while replying in the document on the right.
-  const leftDock = (enableDock && options.enableLeftDock) ? makeEdgeDockController(modal, 'left') : null;
+  // Left dock is now standard for all draggable windows, aligning with
+  // the Email panel's canonical behavior and globally unifying edge-snapping.
+  const leftDock = (enableDock && options.enableLeftDock !== false) ? makeEdgeDockController(modal, 'left') : null;
 
   // Per-drag state, reset on mousedown.
   let dragging = false;
@@ -149,7 +147,7 @@ export function makeWindowDraggable(modal, options = {}) {
     dragging = true;
     const rect = content.getBoundingClientRect();
     startX = cx; startY = cy;
-    startLeft = rect.left; startTop = rect.top;
+    startLeft = Math.round(rect.left); startTop = Math.round(rect.top);
     // Pin position so the drag follows the cursor instead of fighting a
     // centering transform / margin. Inline styles win unless CSS uses
     // !important (the fullscreen rules do, by design).

@@ -61,8 +61,8 @@ function _forceCloseNotesPanel() {
   document.body.classList.remove('notes-view', 'notes-mobile-mode', 'notes-drag-mode');
   document.getElementById('tool-notes-btn')?.classList.remove('active');
   try { Modals.unregister('notes-panel'); } catch {}
-  try { document.getElementById('notes-pane')?.remove(); } catch {}
-  try { document.getElementById('notes-pane-backdrop')?.remove(); } catch {}
+  try { document.getElementById('notes-panel')?.classList.add('hidden'); } catch {}
+  try { document.getElementById('notes-pane-backdrop')?.classList.add('hidden'); } catch {}
   try { window._restoreSidebarIfRouteCollapsed?.(); } catch {}
 }
 
@@ -1109,9 +1109,15 @@ export function openPanel() {
   const btn = document.getElementById('tool-notes-btn');
   if (btn) btn.classList.add('active');
 
+  let pane = document.getElementById('notes-panel');
+  if (pane) {
+    pane.classList.remove('hidden', 'notes-pane-leaving');
+    const backdrop = document.getElementById('notes-pane-backdrop');
+    if (backdrop) backdrop.classList.remove('hidden');
+  } else {
   // Create panel
-  const pane = document.createElement('div');
-  pane.id = 'notes-pane';
+  pane = document.createElement('div');
+  pane.id = 'notes-panel';
   pane.className = 'notes-pane';
   pane.innerHTML = `
     <div class="notes-mobile-grabber" id="notes-mobile-grabber" aria-hidden="true"></div>
@@ -1127,6 +1133,7 @@ export function openPanel() {
         <span class="notes-header-btn-label">Toggle</span>
       </button>
       <button id="notes-minimize-btn" class="modal-minimize-btn" title="Minimize" aria-label="Minimize notes" style="position:relative;left:2px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
+      <button id="notes-close-btn" class="close-btn" title="Close" aria-label="Close notes" style="position:relative;left:2px;background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="notes-search-bar">
       <input type="text" id="notes-search" class="memory-search-input" placeholder="Search notes…" autocomplete="off" />
@@ -1189,6 +1196,13 @@ export function openPanel() {
     e.stopPropagation();
     closePanel('down');
   });
+
+  const closeBtn = document.getElementById('notes-close-btn');
+  if (closeBtn) closeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closePanel('full');
+  });
   // Search
   const searchEl = document.getElementById('notes-search');
   if (searchEl) {
@@ -1220,7 +1234,7 @@ export function openPanel() {
       syncArchiveBtn();
       // Brief fade so the body content swap doesn't snap — the bg-tint
       // change is already eased by CSS transitions on .notes-pane*.
-      const _bodyEl = document.querySelector('#notes-pane .notes-pane-body');
+      const _bodyEl = document.querySelector('#notes-panel .notes-pane-body');
       if (_bodyEl) {
         _bodyEl.style.transition = 'opacity 0.18s ease';
         _bodyEl.style.opacity = '0.25';
@@ -1244,13 +1258,13 @@ export function openPanel() {
       if (lbl) lbl.textContent = _viewMode === 'grid' ? 'List' : 'Grid';
     };
     _setViewLabel();
-    requestAnimationFrame(() => _applyMasonry(document.querySelector('#notes-pane .notes-pane-body')));
+    requestAnimationFrame(() => _applyMasonry(document.querySelector('#notes-panel .notes-pane-body')));
     viewBtn.addEventListener('click', () => {
       _viewMode = _viewMode === 'grid' ? 'list' : 'grid';
       try { localStorage.setItem('odysseus-notes-view', _viewMode); } catch {}
       pane.classList.toggle('notes-view-grid', _viewMode === 'grid');
       _setViewLabel();
-      requestAnimationFrame(() => _applyMasonry(document.querySelector('#notes-pane .notes-pane-body')));
+      requestAnimationFrame(() => _applyMasonry(document.querySelector('#notes-panel .notes-pane-body')));
     });
   }
   // Select mode
@@ -1296,6 +1310,8 @@ export function openPanel() {
     _renderNotes();
     uiModule.showToast(`Deleted ${ids.length}`);
   });
+  } // end of if(!pane)
+
   // Escape: exit select mode first (if active), otherwise close the panel.
   // Skip when the user is editing a form field — those have their own
   // ESC-to-cancel handlers and we don't want to nuke the whole panel
@@ -1362,7 +1378,7 @@ export function openPanel() {
 }
 
 function _renderLoadingSkeleton() {
-  const body = document.querySelector('#notes-pane .notes-pane-body');
+  const body = document.querySelector('#notes-panel .notes-pane-body');
   if (!body) return;
   body.innerHTML = '';
   _renderLabelsInto(body);
@@ -1412,7 +1428,7 @@ function _updateBulkBar() {
   if (deleteBtn) deleteBtn.disabled = count === 0;
   if (allEl) allEl.checked = _notes.length > 0 && _notes.every(n => _selectedIds.has(n.id));
   // Toggle select-mode class so todo dots don't react to hover
-  const pane = document.getElementById('notes-pane');
+  const pane = document.getElementById('notes-panel');
   if (pane) pane.classList.toggle('notes-select-mode', count > 0);
 }
 
@@ -1590,22 +1606,27 @@ export function closePanel(direction) {
   const btn = document.getElementById('tool-notes-btn');
   if (btn) btn.classList.remove('active');
 
-  const pane = document.getElementById('notes-pane');
+  const pane = document.getElementById('notes-panel');
   const backdrop = document.getElementById('notes-pane-backdrop');
   if (pane) {
     // Scale-out + fade. Match the enter animation duration so close feels
     // like the same gesture played backwards.
     pane.classList.add('notes-pane-leaving');
     const _cleanup = () => {
-      try { pane.remove(); } catch {}
-      try { backdrop?.remove(); } catch {}
+      if (_open) return;
+      try { pane.classList.add('hidden'); } catch {}
+      try { backdrop?.classList.add('hidden'); } catch {}
     };
     pane.addEventListener('animationend', _cleanup, { once: true });
     // Belt-and-braces: if animation is skipped (reduced motion / detached
     // tab) the listener won't fire; remove after the expected duration.
     setTimeout(_cleanup, 220);
+    
+    // Clear docked states so it doesn't get stuck minimized off-screen or
+    // conflict with modalManager's suspendDock/resumeDock.
+    _clearNotesSnapStyles(pane);
   } else if (backdrop) {
-    backdrop.remove();
+    backdrop.classList.add('hidden');
   }
   // Show the dock chip for a swipe-down minimize (tap it to reopen).
   if (_minimize) { try { Modals.minimize('notes-panel'); } catch {} }
@@ -1622,7 +1643,7 @@ export function isPanelOpen() { return _open; }
 
 // FLIP animation — capture positions before render, animate back after
 function _captureCardPositions() {
-  const body = document.querySelector('#notes-pane .notes-pane-body');
+  const body = document.querySelector('#notes-panel .notes-pane-body');
   if (!body) return null;
   const positions = new Map();
   body.querySelectorAll('.note-card').forEach(card => {
@@ -1634,7 +1655,7 @@ function _captureCardPositions() {
 
 function _animateReflow(prevPositions) {
   if (!prevPositions || !prevPositions.size) return;
-  const body = document.querySelector('#notes-pane .notes-pane-body');
+  const body = document.querySelector('#notes-panel .notes-pane-body');
   if (!body) return;
   body.querySelectorAll('.note-card').forEach(card => {
     const id = card.dataset.noteId;
@@ -1660,7 +1681,7 @@ function _animateReflow(prevPositions) {
 
 function _renderNotes() {
   _updateRailBadge();
-  const body = document.querySelector('#notes-pane .notes-pane-body');
+  const body = document.querySelector('#notes-panel .notes-pane-body');
   if (!body) return;
   const prevPositions = _captureCardPositions();
   const activeReminderHighlights = _loadActiveHighlights();
@@ -2735,7 +2756,7 @@ function _wireDraftAutosave(form, id) {
 // or another note is opened) so edits aren't lost when the user navigates
 // away without clicking Save. Empty notes are discarded instead of saved.
 function _commitOpenInPlaceEditor() {
-  const form = document.querySelector('#notes-pane .note-form');
+  const form = document.querySelector('#notes-panel .note-form');
   if (!form) return;
   const d = _collectFormDraft(form);
   if (_isDraftEmpty(d)) { form.querySelector('.note-form-cancel')?.click(); return; }
@@ -4176,7 +4197,7 @@ async function _uploadCanvasAsPng(canvas) {
 // ---- Create / Edit / Delete ----
 
 function _createNote(type = 'todo') {
-  const body = document.querySelector('#notes-pane .notes-pane-body');
+  const body = document.querySelector('#notes-panel .notes-pane-body');
   if (!body || _editingId === '__new__') return;
   _editingId = '__new__';
   // Restore an unsaved new-note draft if one survived a prior close/loss.
@@ -4964,7 +4985,7 @@ function _onClTouchEnd() {
 }
 
 async function _commitNoteReorder() {
-  const grid = document.querySelector('#notes-pane .notes-pane-body');
+  const grid = document.querySelector('#notes-panel .notes-pane-body');
   if (!grid) return;
   const ids = Array.from(grid.querySelectorAll('.note-card')).map(c => c.dataset.noteId).filter(Boolean);
   if (!ids.length) return;

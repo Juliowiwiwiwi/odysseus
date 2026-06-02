@@ -586,7 +586,12 @@ function _getModal() {
     const content = _modal.querySelector('.modal-content');
     const header = _modal.querySelector('.modal-header');
     if (content && header) {
-      makeWindowDraggable(_modal, { content, header });
+      makeWindowDraggable(_modal, {
+        content,
+        header,
+        enableLeftDock: true,
+      });
+      Modals.injectMinimizeButton(_modal, 'calendar-modal');
     }
   }
   return _modal;

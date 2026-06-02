@@ -1822,6 +1822,7 @@ function _wireCookbookDrag(modal) {
     // tileManager side snap is suppressed for this modal so there isn't a
     // second, tighter edge state fighting the working one.
     enableDock: true,
+    enableLeftDock: true,
   });
 }
 

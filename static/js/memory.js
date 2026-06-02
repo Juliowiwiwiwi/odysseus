@@ -7,6 +7,8 @@ import spinnerModule from './spinner.js';
 import { makeWindowDraggable } from './windowDrag.js';
 import { snapModalToZone } from './tileManager.js';
 
+import * as Modals from './modalManager.js';
+
 var escapeHtml = uiModule.esc;
 
 let memories = [];
@@ -43,6 +45,20 @@ function _wireMemoryDrag() {
         },
       });
     },
+  });
+
+  Modals.register('memory-modal', {
+    railBtnId: null,
+    sidebarBtnId: 'tool-memory-btn',
+    closeFn: () => {
+      const btn = document.getElementById('close-memory-modal');
+      if (btn) btn.click();
+      else modal.classList.add('hidden');
+    },
+    restoreFn: () => {
+      renderMemoryList();
+      updateMemoryCount();
+    }
   });
 }
 

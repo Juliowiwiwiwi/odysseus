@@ -88,10 +88,10 @@ function _viewportSafeRect() {
   const rr = rail?.getBoundingClientRect();
   if (rr && rr.right > 0) leftEdge = Math.max(leftEdge, rr.right);
   return {
-    left: leftEdge + 4,
-    top: 4,
-    right: window.innerWidth - 4,
-    bottom: window.innerHeight - 4,
+    left: leftEdge,
+    top: 0,
+    right: window.innerWidth,
+    bottom: window.innerHeight,
   };
 }
 
@@ -100,10 +100,10 @@ function _zoneForPointer(x, y) {
   const W = safe.right - safe.left;
   const H = safe.bottom - safe.top;
 
-  // Dragged OVER the top edge (cursor at/past the very top) → TRUE fullscreen
-  // that covers everything, including the sidebar.
+  // Dragged OVER the top edge (cursor at/past the very top) -> TRUE fullscreen
+  // that respects the sidebar but occupies the full height.
   if (y <= 0) {
-    return { name: 'fullscreen', rect: { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight } };
+    return { name: 'fullscreen', rect: { left: safe.left, top: 0, width: W, height: window.innerHeight } };
   }
   // Near the top edge (but not over it) → "maximize": fill the safe area,
   // which sits NEXT TO the sidebar/rail rather than covering it.
@@ -133,7 +133,7 @@ function _zoneForContent(content, x, y) {
   if (modal && (modal.id === 'cookbook-modal'
       || modal.id === 'theme-modal'
       || modal.id === 'memory-modal')
-      && zone.name !== 'fullscreen') return null;
+      && zone.name === 'maximize') return null;
   return zone;
 }
 
@@ -194,8 +194,12 @@ function _applySnap(content, rect, zoneName) {
       top:    content.style.top  || (Math.round(_fromRect.top)  + 'px'),
       width:  content.style.width,
       height: content.style.height,
+      maxWidth: content.style.maxWidth,
       maxHeight: content.style.maxHeight,
+      bottom: content.style.bottom,
+      margin: content.style.margin,
       transform: content.style.transform,
+      borderRadius: content.style.borderRadius
     });
   }
   content.style.transition = 'left 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -207,9 +211,12 @@ function _applySnap(content, rect, zoneName) {
   content.style.setProperty('top',    rect.top    + 'px', 'important');
   content.style.setProperty('width',  rect.width  + 'px', 'important');
   content.style.setProperty('height', rect.height + 'px', 'important');
+  content.style.setProperty('max-width', 'none', 'important');
   content.style.setProperty('max-height', rect.height + 'px', 'important');
+  content.style.setProperty('bottom', 'auto', 'important');
   content.style.setProperty('margin', '0', 'important');
   content.style.setProperty('transform', 'none', 'important');
+  content.style.setProperty('border-radius', '0', 'important');
   content.dataset._tileZone = zoneName;
   setTimeout(() => { content.style.transition = ''; }, 250);
 }
@@ -218,7 +225,7 @@ function _unsnap(content) {
   const pre = content.dataset._tilePreSnap;
   if (!pre) return;
   // Clear the !important snap props first — Object.assign can't override them.
-  ['position', 'left', 'top', 'width', 'height', 'max-height', 'margin', 'transform']
+  ['position', 'left', 'top', 'width', 'height', 'max-width', 'max-height', 'bottom', 'margin', 'transform', 'border-radius']
     .forEach(p => content.style.removeProperty(p));
   try {
     const r = JSON.parse(pre);
@@ -232,12 +239,13 @@ function _unsnap(content) {
 }
 
 function _findDragTarget(e) {
-  const header = e.target.closest('.modal-header');
+  const header = e.target.closest('.modal-header, .notes-pane-header');
   if (!header) return null;
   // Skip clicks on header buttons (close, minimize, etc.)
   if (e.target.closest('button')) return null;
-  const modal = header.closest('.modal, .research-overlay');
+  const modal = header.closest('.modal, .research-overlay, .notes-pane');
   if (!modal) return null;
+  if (modal.classList.contains('notes-pane')) return modal;
   const content = modal.querySelector('.modal-content, .research-pane');
   return content || null;
 }
@@ -302,7 +310,7 @@ function _reclampAll(animate = false) {
     const W = safe.right - safe.left, H = safe.bottom - safe.top;
     let r;
     switch (name) {
-      case 'fullscreen':     r = { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight }; break;
+      case 'fullscreen':     r = { left: safe.left, top: 0, width: W, height: window.innerHeight }; break;
       case 'maximize':       r = { left: safe.left, top: safe.top, width: W, height: H }; break;
       case 'left-half':      r = { left: safe.left, top: safe.top, width: W/2, height: H }; break;
       case 'right-half':     r = { left: safe.left + W/2, top: safe.top, width: W/2, height: H }; break;
