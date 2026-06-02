@@ -9,6 +9,7 @@ import sessionModule from './sessions.js';
 import spinnerModule from './spinner.js';
 import markdownModule from './markdown.js';
 import { makeWindowDraggable } from './windowDrag.js';
+import * as Modals from './modalManager.js';
 import { langIcon } from './langIcons.js';
 import { registerMenuDismiss, dismissOrRemove } from './escMenuStack.js';
 
@@ -1572,7 +1573,10 @@ let _libraryArchivedView = false;   // Documents tab showing archived docs?
       <div class="modal-content doclib-modal-content" style="width:min(640px, 92vw);max-height:85vh;background:var(--bg);">
         <div class="modal-header">
           <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>Library</h4>
-          <button class="close-btn" id="doclib-close">\u2716</button>
+          <div style="display:flex;gap:4px;">
+            <button class="minimize-btn" title="Minimize" style="background:none;border:none;cursor:pointer;opacity:0.6;font-size:16px;line-height:1;margin-right:4px;">_</button>
+            <button class="close-btn" id="doclib-close" title="Close" style="background:none;border:none;cursor:pointer;opacity:0.6;font-size:16px;line-height:1;">\u2716</button>
+          </div>
         </div>
         <div class="lib-tabs" id="doclib-lib-tabs" style="padding:0 10px;">
           <button class="lib-tab" data-doclib-tab="chats"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chats</button>
@@ -1699,6 +1703,23 @@ let _libraryArchivedView = false;   // Documents tab showing archived docs?
     `;
     document.body.appendChild(modal);
 
+    try {
+      Modals.register('doclib-modal', {
+        label: 'Library',
+        icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2zM9 7h6M9 11h4',
+        closeFn: () => {
+          const m = document.getElementById('doclib-modal');
+          if (m) m.classList.add('hidden');
+        },
+        restoreFn: () => {
+          const m = document.getElementById('doclib-modal');
+          if (m) m.classList.remove('hidden');
+        }
+      });
+    } catch (e) {
+      console.error('Failed to register doclib-modal', e);
+    }
+
     // Make modal draggable (same logic as other modals)
     {
       const content = modal.querySelector('.modal-content');
@@ -1764,7 +1785,8 @@ let _libraryArchivedView = false;   // Documents tab showing archived docs?
           content,
           header,
           fsClass: FS_CLASS,
-          skipSelector: '.modal-close',
+          skipSelector: '.close-btn, .minimize-btn, .modal-close',
+          enableLeftDock: true,
           onEnterFullscreen: enterFullscreen,
           onExitFullscreen: exitFullscreen,
           enableFullscreen: false,
